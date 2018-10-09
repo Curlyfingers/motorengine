@@ -1,16 +1,15 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from abc import ABCMeta
+from abc import abstractmethod
 
-import six
-from bson import ObjectId
-from easydict import EasyDict as edict
-from tornado.concurrent import return_future
+from six import string_types
+from six import with_metaclass
 
 from motorengine import ASCENDING
 from motorengine.query_builder.transform import update
 
 
-class BaseAggregation(object):
+class BaseAggregation(with_metaclass(ABCMeta)):
     def __init__(self, field, alias):
         self._field = field
         self.alias = alias
@@ -18,6 +17,10 @@ class BaseAggregation(object):
     @property
     def field(self):
         return self._field
+
+    @abstractmethod
+    def to_query(self, *args, **kwargs):
+        pass
 
 
 class PipelineOperation(object):
@@ -42,7 +45,7 @@ class GroupBy(PipelineOperation):
                 group_obj['$group'].update(group.to_query(self.aggregation))
                 continue
 
-            if isinstance(group, six.string_types):
+            if isinstance(group, string_types):
                 field_name = group
             else:
                 field_name = self.aggregation.get_field(group).db_field
@@ -90,7 +93,7 @@ class OrderBy(PipelineOperation):
         return {'$sort': {self.field.db_field: self.direction}}
 
 
-class Aggregation(object):
+class TopLevelAggregation(object):
     def __init__(self, queryset):
         self.first_group_by = True
         self.queryset = queryset
@@ -98,13 +101,18 @@ class Aggregation(object):
         self.ids = []
         self.raw_query = None
 
-    def get_field_name(self, field):
-        if isinstance(field, six.string_types):
-            return field
+    @abstractmethod
+    def fetch(self, *args, **kwargs):
+        return
 
+    @staticmethod
+    def get_field_name(field):
+        if isinstance(field, string_types):
+            return field
         return field.db_field
 
-    def get_field(self, field):
+    @staticmethod
+    def get_field(field):
         return field
 
     def raw(self, steps):
@@ -128,8 +136,9 @@ class Aggregation(object):
         self.pipeline.append(OrderBy(self, field, direction))
         return self
 
-    def fill_ids(self, item):
-        if not '_id' in item:
+    @staticmethod
+    def fill_ids(item):
+        if '_id' not in item:
             return
 
         if isinstance(item['_id'], (dict,)):
@@ -139,33 +148,14 @@ class Aggregation(object):
     def get_instance(self, item):
         return self.queryset.__klass__.from_son(item)
 
-    def handle_aggregation(self, callback):
-        def handle(*arguments, **kw):
-            if arguments[1]:
-                raise RuntimeError('Aggregation failed due to: %s' % str(arguments[1]))
-
-            results = []
-            for item in arguments[0]:
-                self.fill_ids(item)
-                results.append(edict(item))
-
-            callback(results)
-
-        return handle
-
-    @return_future
-    def fetch(self, callback=None, alias=None):
-        coll = self.queryset.coll(alias)
-        coll.aggregate(self.to_query()).to_list(None, callback=self.handle_aggregation(callback))
-
     @classmethod
     def avg(cls, field, alias=None):
-        from motorengine.aggregation.avg import AverageAggregation
+        from motorengine.base.aggregation.avg import AverageAggregation
         return AverageAggregation(field, alias)
 
     @classmethod
     def sum(cls, field, alias=None):
-        from motorengine.aggregation.sum import SumAggregation
+        from motorengine.base.aggregation.sum import SumAggregation
         return SumAggregation(field, alias)
 
     def to_query(self):

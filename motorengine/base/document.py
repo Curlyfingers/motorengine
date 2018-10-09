@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import six
-from tornado.concurrent import return_future
+from abc import ABCMeta
+from abc import abstractmethod
+from six import with_metaclass
 
-from motorengine.metaclasses import DocumentMetaClass
 from motorengine.errors import InvalidDocumentError, LoadReferencesRequiredError
 
 
@@ -12,17 +12,8 @@ AUTHORIZED_FIELDS = [
 ]
 
 
-class BaseDocument(object):
-    def __init__(
-        self, _is_partly_loaded=False, _reference_loaded_fields=None, **kw
-    ):
-        """
-        :param _is_partly_loaded: is a flag that indicates if the document was
-        loaded partly (with `only`, `exlude`, `fields`). Default: False.
-        :param _reference_loaded_fields: dict that contains projections for
-        reference fields if any. Default: None.
-        :param kw: pairs of fields of the document and their values
-        """
+class BaseDocument(with_metaclass(ABCMeta)):
+    def __init__(self, _is_partly_loaded=False, _reference_loaded_fields=None, **kw):
         from motorengine.fields.dynamic_field import DynamicField
 
         self._id = kw.pop('_id', None)
@@ -46,25 +37,41 @@ class BaseDocument(object):
             self._values[key] = value
 
     @classmethod
-    @return_future
-    def ensure_index(cls, callback=None):
-        cls.objects.ensure_index(callback=callback)
+    @abstractmethod
+    async def ensure_index(cls):
+        return
+
+    @abstractmethod
+    async def save(self, *args, **kwargs):
+        return
+
+    @abstractmethod
+    async def delete(self, *args, **kwargs):
+        return
+
+    @abstractmethod
+    async def load_references(self, *args, **kwargs):
+        return
 
     @property
     def is_lazy(self):
         return self.__class__.__lazy__
 
-    def is_list_field(self, field):
+    @staticmethod
+    def is_list_field(field):
         from motorengine.fields.list_field import ListField
         return isinstance(field, ListField) or (isinstance(field, type) and issubclass(field, ListField))
 
-    def is_reference_field(self, field):
+    @staticmethod
+    def is_reference_field(field):
         from motorengine.fields.reference_field import ReferenceField
         return isinstance(field, ReferenceField) or (isinstance(field, type) and issubclass(field, ReferenceField))
 
-    def is_embedded_field(self, field):
+    @staticmethod
+    def is_embedded_field(field):
         from motorengine.fields.embedded_document_field import EmbeddedDocumentField
-        return isinstance(field, EmbeddedDocumentField) or (isinstance(field, type) and issubclass(field, EmbeddedDocumentField))
+        return isinstance(field, EmbeddedDocumentField) or \
+            (isinstance(field, type) and issubclass(field, EmbeddedDocumentField))
 
     @classmethod
     def from_son(cls, dic, _is_partly_loaded=False, _reference_loaded_fields=None):
@@ -110,103 +117,15 @@ class BaseDocument(object):
 
         return True
 
-    @return_future
-    def save(self, callback, alias=None, upsert=False):
-        '''
-        Creates or updates the current instance of this document.
-        '''
-        self.objects.save(self, callback=callback, alias=alias, upsert=upsert)
-
-    @return_future
-    def delete(self, callback, alias=None):
-        '''
-        Deletes the current instance of this Document.
-
-        .. testsetup:: saving_delete_one
-
-            import tornado.ioloop
-            from motorengine import *
-
-            class User(Document):
-                __collection__ = "UserDeletingInstance"
-                name = StringField()
-
-            io_loop = tornado.ioloop.IOLoop.instance()
-            connect("test", host="localhost", port=27017, io_loop=io_loop)
-
-        .. testcode:: saving_delete_one
-
-            def handle_user_created(user):
-                user.delete(callback=handle_user_deleted)
-
-            def handle_user_deleted(number_of_deleted_items):
-                try:
-                    assert number_of_deleted_items == 1
-                finally:
-                    io_loop.stop()
-
-            def create_user():
-                user = User(name="Bernardo")
-                user.save(callback=handle_user_created)
-
-            io_loop.add_timeout(1, create_user)
-            io_loop.start()
-        '''
-        self.objects.remove(instance=self, callback=callback, alias=alias)
-
-    def fill_values_collection(self, collection, field_name, value):
+    @staticmethod
+    def fill_values_collection(collection, field_name, value):
         collection[field_name] = value
 
-    def fill_list_values_collection(self, collection, field_name, value):
+    @staticmethod
+    def fill_list_values_collection(collection, field_name, value):
         if field_name not in collection:
             collection[field_name] = []
         collection[field_name].append(value)
-
-    def handle_load_reference(self, callback, references, reference_count, values_collection, field_name, fill_values_method=None):
-        if fill_values_method is None:
-            fill_values_method = self.fill_values_collection
-
-        def handle(*args, **kw):
-            fill_values_method(values_collection, field_name, args[0])
-
-            if reference_count > 0:
-                references.pop()
-
-            if len(references) == 0:
-                callback({
-                    'loaded_reference_count': reference_count,
-                    'loaded_values': values_collection
-                })
-
-        return handle
-
-    @return_future
-    def load_references(self, fields=None, callback=None, alias=None):
-        if callback is None:
-            raise ValueError("Callback can't be None")
-
-        references = self.find_references(document=self, fields=fields)
-        reference_count = len(references)
-
-        if not reference_count:
-            callback({
-                'loaded_reference_count': reference_count,
-                'loaded_values': []
-            })
-            return
-
-        for dereference_function, document_id, values_collection, field_name, fill_values_method in references:
-            dereference_function(
-                document_id,
-                callback=self.handle_load_reference(
-                    callback=callback,
-                    references=references,
-                    reference_count=reference_count,
-                    values_collection=values_collection,
-                    field_name=field_name,
-                    fill_values_method=fill_values_method
-                )
-            )
 
     def find_references(self, document, fields=None, results=None):
         if results is None:
@@ -231,10 +150,9 @@ class BaseDocument(object):
 
         return results
 
-    def _get_load_function(self, document, field_name, document_type):
-        """Get appropriate method to load reference field of the document"""
+    @staticmethod
+    def _get_load_function(document, field_name, document_type):
         if field_name in document._reference_loaded_fields:
-            # there is a projection for this field
             fields = document._reference_loaded_fields[field_name]
             return document_type.objects.fields(**fields).get
         return document_type.objects.get
@@ -296,7 +214,6 @@ class BaseDocument(object):
         return value
 
     def __getattribute__(self, name):
-        # required for the next test
         if name in ['_fields']:
             return object.__getattribute__(self, name)
 
@@ -361,10 +278,3 @@ class BaseDocument(object):
             obj.item_type.get_fields(".".join(field_values[1:]), fields=fields)
 
         return fields
-
-
-class Document(six.with_metaclass(DocumentMetaClass, BaseDocument)):
-    '''
-    Base class for all documents specified in MotorEngine.
-    '''
-    pass

@@ -8,23 +8,6 @@ from motorengine.fields.base_field import BaseField
 
 
 class EmbeddedDocumentField(BaseField):
-    '''
-    Field responsible for storing an embedded document.
-
-    Usage:
-
-    .. testcode:: modeling_fields
-
-        class Comment(Document):
-            text = StringField(required=True)
-
-        comment = EmbeddedDocumentField(embedded_document_type=Comment)
-
-    Available arguments (apart from those in `BaseField`):
-
-    * `embedded_document_type` - The type of document that this field accepts as an embedded document.
-    '''
-
     def __init__(self, embedded_document_type=None, *args, **kw):
         super(EmbeddedDocumentField, self).__init__(*args, **kw)
 
@@ -43,13 +26,15 @@ class EmbeddedDocumentField(BaseField):
 
     def validate(self, value):
         # avoiding circular reference
-        from motorengine.document import BaseDocument as Document
+        from motorengine.asyncio.document import TopLevelBaseDocument as ATopLevelBaseDocument
+        from motorengine.tornado.document import TopLevelBaseDocument as TTopLevelBaseDocument
 
-        if not isinstance(self.embedded_type, type) or not issubclass(self.embedded_type, Document):
+        if not isinstance(self.embedded_type, type) or \
+            not issubclass(self.embedded_type, (ATopLevelBaseDocument, TTopLevelBaseDocument, )):
             raise ValueError(
-                "The field 'embedded_document_type' argument must be a subclass of Document, not '%s'." %
+                'The field \'embedded_document_type\' argument must be a subclass of Document, not \'{}\'.'.format(
                 str(self.embedded_type)
-            )
+            ))
 
         if value is None:
             return True

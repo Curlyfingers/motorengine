@@ -1,11 +1,9 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# code adapted from https://github.com/MongoEngine/mongoengine/blob/master/mongoengine/base/metaclasses.py
+from abc import ABCMeta
 
 from motorengine.fields import BaseField
 from motorengine.errors import InvalidDocumentError
-from motorengine.queryset import QuerySet
 
 
 class classproperty(property):
@@ -13,8 +11,8 @@ class classproperty(property):
         return classmethod(self.fget).__get__(None, owner)()
 
 
-class DocumentMetaClass(type):
-    query_set_class = QuerySet
+class DocumentMetaClass(ABCMeta):
+    query_set_class = None
 
     def __new__(cls, name, bases, attrs):
         flattened_bases = cls._get_bases(bases)
@@ -46,13 +44,6 @@ class DocumentMetaClass(type):
             field_names[attr_value.db_field] = field_names.get(
                 attr_value.db_field, 0) + 1
 
-        # Ensure no duplicate db_fields
-        duplicate_db_fields = [k for k, v in field_names.items() if v > 1]
-        if duplicate_db_fields:
-            msg = ("Multiple db_fields defined for: %s " %
-                   ", ".join(duplicate_db_fields))
-            raise InvalidDocumentError(msg)
-
         # Set _fields and db_field maps
         attrs['_fields'] = doc_fields
         attrs['_db_field_map'] = dict([(k, getattr(v, 'db_field', k))
@@ -65,6 +56,9 @@ class DocumentMetaClass(type):
 
         new_class = super_new(cls, name, bases, attrs)
 
+        if '__inherit__' not in attrs:
+            new_class.__inherit__ = False
+
         if '__collection__' not in attrs:
             new_class.__collection__ = new_class.__name__
 
@@ -73,6 +67,14 @@ class DocumentMetaClass(type):
 
         if '__alias__' not in attrs:
             new_class.__alias__ = None
+
+        if new_class:
+            if not new_class.__inherit__:
+                duplicate_db_fields = [k for k, v in field_names.items() if v > 1]
+                if duplicate_db_fields:
+                    msg = ("Multiple db_fields defined for: %s " %
+                           ", ".join(duplicate_db_fields))
+                    raise InvalidDocumentError(msg)
 
         setattr(new_class, 'objects', classproperty(lambda *args, **kw: cls.query_set_class(new_class)))
 

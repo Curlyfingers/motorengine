@@ -4,6 +4,10 @@
 import re
 
 
+class MotorengineConnectionError(Exception):
+    pass
+
+
 class InvalidDocumentError(ValueError):
     pass
 
@@ -30,14 +34,14 @@ class UniqueKeyViolationError(RuntimeError):
         self.instance_type = instance_type
 
     def __str__(self):
-        return "The index \"%s\" was violated when trying to save this \"%s\" (error code: %s)." % (
+        return "The index \"{}\" was violated when trying to save this \"{}\" (error code: {}).".format(
             self.index_name,
             self.instance_type.__name__,
             self.error_code
         )
 
     @classmethod
-    def from_pymongo(self, err, instance_type):
+    def from_pymongo(cls, err, instance_type):
         match = PYMONGO_ERROR_REGEX.match(err)
 
         if not match:

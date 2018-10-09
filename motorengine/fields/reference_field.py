@@ -45,14 +45,15 @@ class ReferenceField(BaseField):
 
     def validate(self, value):
         # avoiding circular reference
-        from motorengine.document import BaseDocument as Document
+        from motorengine.asyncio.document import TopLevelBaseDocument as ATopLevelBaseDocument
+        from motorengine.tornado.document import TopLevelBaseDocument as TTopLevelBaseDocument
 
-        if not isinstance(self.reference_type, type) or not issubclass(self.reference_type, Document):
+        if not isinstance(self.reference_type, type) or \
+            not issubclass(self.reference_type, (ATopLevelBaseDocument, TTopLevelBaseDocument, )):
             raise ValueError(
-                "The field 'reference_document_type' argument must be a subclass of Document, not '%s'." % (
-                    str(self.reference_type)
-                )
-            )
+                'The field \'reference_document_type\' argument must be a subclass of Document, not \'{}\'.'.format(
+                str(self.reference_type)
+            ))
 
         if value is not None and not isinstance(value, (self.reference_type, ObjectId)):
             return False
