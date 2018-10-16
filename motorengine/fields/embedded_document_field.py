@@ -26,11 +26,11 @@ class EmbeddedDocumentField(BaseField):
 
     def validate(self, value):
         # avoiding circular reference
-        from motorengine.asyncio.document import TopLevelBaseDocument as ATopLevelBaseDocument
-        from motorengine.tornado.document import TopLevelBaseDocument as TTopLevelBaseDocument
+        from motorengine.asyncio.document import Document as ADocument
+        from motorengine.tornado.document import Document as TDocument
 
         if not isinstance(self.embedded_type, type) or \
-            not issubclass(self.embedded_type, (ATopLevelBaseDocument, TTopLevelBaseDocument, )):
+            not issubclass(self.embedded_type, (ADocument, TDocument, )):
             raise ValueError(
                 'The field \'embedded_document_type\' argument must be a subclass of Document, not \'{}\'.'.format(
                 str(self.embedded_type)
