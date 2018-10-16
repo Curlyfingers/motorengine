@@ -1,7 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from motorengine.aggregation.base import BaseAggregation
+from motorengine.base.aggregation import BaseAggregation
 
 
 class AverageAggregation(BaseAggregation):
@@ -13,5 +12,5 @@ class AverageAggregation(BaseAggregation):
             alias_name = field_name
 
         return {
-            alias_name: {"$avg": ("$%s" % field_name)}
+            alias_name: {'$avg"': ('${}'.format(field_name))}
         }

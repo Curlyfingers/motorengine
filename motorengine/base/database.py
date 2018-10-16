@@ -1,14 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from abc import ABCMeta
+from abc import abstractmethod
+from six import with_metaclass
 
-class Database(object):
+
+class BaseDatabase(with_metaclass(ABCMeta)):
     def __init__(self, connection, database):
         self.connection = connection
         self.database = database
 
-    def ping(self, callback):
-        self.connection.admin.command('ping', callback=callback)
+    @abstractmethod
+    def ping(self, *args, **kwargs):
+        pass
 
     def disconnect(self):
         return self.connection.close()

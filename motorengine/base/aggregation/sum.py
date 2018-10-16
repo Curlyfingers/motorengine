@@ -1,7 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from motorengine.aggregation.base import BaseAggregation
+from motorengine.base.aggregation import BaseAggregation
 
 
 class SumAggregation(BaseAggregation):
@@ -13,5 +12,5 @@ class SumAggregation(BaseAggregation):
             alias = field_name
 
         return {
-            alias: {"$sum": ("$%s" % field_name)}
+            alias: {'$sum': ('${}'.format(field_name))}
         }
