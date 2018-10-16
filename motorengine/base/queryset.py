@@ -9,19 +9,31 @@ from abc import abstractmethod
 
 from motorengine import ASCENDING
 from motorengine.query_builder.field_list import QueryFieldList
+from motorengine.query_builder.transform import validate_fields
+from motorengine.query_builder.node import Q, QCombination, QNot
 
 
 class BaseQuerySet(with_metaclass(ABCMeta)):
     DEFAULT_LIMIT = 1000
 
     def __init__(self, klass):
+        if klass.__abstract__ is True:
+            raise Exception('Abstract model \'{}\' could not be used for retrieving data'.format(klass.__name__))
         self.__klass__ = klass
-        self._filters = {}
+        self._filters = None
         self._limit = None
         self._skip = None
         self._order_fields = []
         self._loaded_fields = QueryFieldList()
         self._reference_loaded_fields = {}
+
+        if klass.__inherit__ is True:
+            child_classes = [klass.__hierarchy__,]
+            child_classes.extend([
+                child_class.__hierarchy__
+                for child_class in klass.__child_classes__
+            ])
+            self._filters = Q({'_cls': {'$in': child_classes}})
 
     @property
     def is_lazy(self):
@@ -30,6 +42,15 @@ class BaseQuerySet(with_metaclass(ABCMeta)):
     @abstractmethod
     def _get_connection_function(self):
         pass
+
+    @staticmethod
+    def _resolve_class(doc):
+        from motorengine.base import classes_registry
+        klass = doc.pop('_cls', None)
+        if not klass:
+            return
+        return classes_registry.get(klass)
+
 
     def coll(self, alias=None):
         get_connection = self._get_connection_function()
@@ -274,9 +295,6 @@ class BaseQuerySet(with_metaclass(ABCMeta)):
         )
 
     def filter(self, *arguments, **kwargs):
-        from motorengine.query_builder.node import Q, QCombination, QNot
-        from motorengine.query_builder.transform import validate_fields
-
         if arguments and len(arguments) == 1 and isinstance(arguments[0], (Q, QNot, QCombination)):
             if self._filters:
                 self._filters = self._filters & arguments[0]

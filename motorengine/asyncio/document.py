@@ -1,10 +1,8 @@
-import six
-
 from motorengine.base.document import BaseDocument
 from motorengine.asyncio.metaclasses import DocumentMetaClass
 
 
-class TopLevelBaseDocument(BaseDocument):
+class Document(BaseDocument, metaclass=DocumentMetaClass):
     @classmethod
     async def ensure_index(cls):
         return await cls.objects.ensure_index()
@@ -39,7 +37,3 @@ class TopLevelBaseDocument(BaseDocument):
             'loaded_reference_count': reference_count,
             'loaded_values': values_collection  # FIXME: wtf?
         }
-
-
-class Document(six.with_metaclass(DocumentMetaClass, TopLevelBaseDocument)):
-    __inherit__ = True

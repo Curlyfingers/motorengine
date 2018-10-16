@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
-
 from abc import ABCMeta
 from abc import abstractmethod
-from six import with_metaclass
 
 from motorengine.errors import InvalidDocumentError, LoadReferencesRequiredError
 
@@ -12,7 +9,7 @@ AUTHORIZED_FIELDS = [
 ]
 
 
-class BaseDocument(with_metaclass(ABCMeta)):
+class BaseDocument(metaclass=ABCMeta):
     def __init__(self, _is_partly_loaded=False, _reference_loaded_fields=None, **kw):
         from motorengine.fields.dynamic_field import DynamicField
 

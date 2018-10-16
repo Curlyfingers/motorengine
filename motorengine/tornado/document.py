@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-
-import six
-
 from motorengine.base.document import BaseDocument
 from motorengine.tornado.metaclasses import DocumentMetaClass
 
 
-class TopLevelBaseDocument(BaseDocument):
+class Document(BaseDocument, metaclass=DocumentMetaClass):
     @classmethod
     async def ensure_index(cls, callback=None):
         await cls.objects.ensure_index(callback=callback)
@@ -61,7 +57,3 @@ class TopLevelBaseDocument(BaseDocument):
                     fill_values_method=fill_values_method
                 )
             )
-
-
-class Document(six.with_metaclass(DocumentMetaClass, TopLevelBaseDocument)):
-    __inherit__ = True

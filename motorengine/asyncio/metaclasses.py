@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from motorengine.asyncio.queryset import QuerySet
 from motorengine.base.metaclasses import DocumentMetaClass as _DocumentMetaClass
 

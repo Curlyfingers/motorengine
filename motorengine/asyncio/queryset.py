@@ -123,7 +123,7 @@ class QuerySet(BaseQuerySet):
                 return await self.coll(alias).remove()['n']
 
     async def get(self, _id=None, alias=None, **kwargs):
-        from motorengine.asyncio import Q
+        from motorengine.query_builder.node import Q
 
         if _id is None and not kwargs:
             raise RuntimeError('Either an id or a filter must be provided to get')
@@ -145,7 +145,7 @@ class QuerySet(BaseQuerySet):
         if instance is None:
             return
         else:
-            doc = self.__klass__.from_son(
+            doc = self._resolve_class(instance).from_son(
                 instance,
                 _is_partly_loaded=bool(self._loaded_fields),
                 _reference_loaded_fields=self._reference_loaded_fields
@@ -173,7 +173,7 @@ class QuerySet(BaseQuerySet):
 
         result = []
         for doc in docs:
-            obj = self.__klass__.from_son(
+            obj = self._resolve_class(doc).from_son(
                 doc,
                 _reference_loaded_fields=self._reference_loaded_fields,
                 _is_partly_loaded=is_partly_loaded

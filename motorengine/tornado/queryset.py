@@ -189,7 +189,7 @@ class QuerySet(BaseQuerySet):
             if instance is None:
                 callback(None)
             else:
-                doc = self.__klass__.from_son(
+                doc = self._resolve_class(instance).from_son(
                     instance,
                     _is_partly_loaded=bool(self._loaded_fields),
                     _reference_loaded_fields=self._reference_loaded_fields
@@ -203,7 +203,7 @@ class QuerySet(BaseQuerySet):
         return handle
 
     async def get(self, _id=None, callback=None, alias=None, **kwargs):
-        from motorengine import Q
+        from motorengine.query_builder.node import Q
 
         if _id is None and not kwargs:
             raise RuntimeError('Either an id or a filter must be provided to get')
@@ -247,7 +247,7 @@ class QuerySet(BaseQuerySet):
             is_partly_loaded = bool(self._loaded_fields)
 
             for doc in arguments[0]:
-                obj = self.__klass__.from_son(
+                obj = self._resolve_class(doc).from_son(
                     doc,
                     # set projections for references (if any)
                     _reference_loaded_fields=self._reference_loaded_fields,
