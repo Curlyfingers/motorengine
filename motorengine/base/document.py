@@ -99,6 +99,11 @@ class BaseDocument(metaclass=ABCMeta):
 
         return data
 
+    def to_dict(self):
+        data = self.to_son()
+        data.update({'id': self._id})
+        return data
+
     def validate(self):
         return self.validate_fields()
 
