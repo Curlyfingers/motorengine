@@ -264,12 +264,12 @@ class BaseDocument(metaclass=ABCMeta):
             fields = []
 
         if '.' not in name:
-            dyn_field = DynamicField(db_field="_%s" % name)
+            dyn_field = DynamicField(db_field="%s" % name)
             fields.append(cls._fields.get(name, dyn_field))
             return fields
 
         field_values = name.split('.')
-        dyn_field = DynamicField(db_field="_%s" % field_values[0])
+        dyn_field = DynamicField(db_field="%s" % field_values[0])
         obj = cls._fields.get(field_values[0], dyn_field)
         fields.append(obj)
 
