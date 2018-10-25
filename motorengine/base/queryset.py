@@ -43,12 +43,11 @@ class BaseQuerySet(with_metaclass(ABCMeta)):
     def _get_connection_function(self):
         pass
 
-    @staticmethod
-    def _resolve_class(doc):
+    def _resolve_class(self, doc):
         from motorengine.base import classes_registry
         klass = doc.pop('_cls', None)
         if not klass:
-            return
+            return self.__klass__
         return classes_registry.get(klass)
 
 
