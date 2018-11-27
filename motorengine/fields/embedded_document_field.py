@@ -57,5 +57,9 @@ class EmbeddedDocumentField(BaseField):
     def from_son(self, value):
         if value is None:
             return None
-
+        if '_cls' in value:
+            from motorengine.base import classes_registry
+            klass = value.get('_cls', None)
+            if klass:
+                return classes_registry.get(klass)(value)
         return self.embedded_type.from_son(value)
