@@ -126,7 +126,7 @@ class DocumentMetaClass(ABCMeta):
             return new_class.__name__
         for _flattened_base in _flattened_bases:
             if not _flattened_base.__abstract__:
-                return _flattened_base[0].__name__
+                return _flattened_base.__name__
         return new_class.__name__
 
     @staticmethod
