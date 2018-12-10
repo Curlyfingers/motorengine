@@ -109,7 +109,7 @@ class QuerySet(BaseQuerySet):
         })
 
     async def delete(self, alias=None):
-        return self.remove(alias=alias)
+        return await self.remove(alias=alias)
 
     async def remove(self, instance=None, alias=None):
         if instance is not None:
