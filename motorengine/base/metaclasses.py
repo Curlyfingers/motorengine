@@ -131,8 +131,11 @@ class DocumentMetaClass(ABCMeta):
         _flattened_bases = flattened_bases[::-1][2:]
         if _flattened_bases:
             for base in _flattened_bases:
-                base.__child_classes__.append(new_class)
-        new_class.__hierarchy__ = '.'.join([cls.__name__ for cls in _flattened_bases] + [new_class.__name__])
+                if not base.__abstract__:
+                    base.__child_classes__.append(new_class)
+        new_class.__hierarchy__ = '.'.join(
+            [cls.__name__ for cls in _flattened_bases if not cls.__abstract__] + [new_class.__name__]
+        )
 
     @staticmethod
     def _is_base(flattened_bases):
