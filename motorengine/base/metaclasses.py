@@ -110,6 +110,9 @@ class DocumentMetaClass(ABCMeta):
             _cls_field.default = new_class.__hierarchy__
             new_class._fields['_cls'] = _cls_field
 
+        elif '_cls' in new_class._fields:
+            del new_class._fields['_cls']
+
         setattr(new_class, 'objects', classproperty(lambda *args, **kw: cls.query_set_class(new_class)))
 
         return new_class
