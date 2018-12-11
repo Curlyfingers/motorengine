@@ -186,9 +186,10 @@ class QuerySet(BaseQuerySet):
 
         return result
 
-    async def count(self, alias=None):
+    async def count(self, alias=None, with_filters=False):
         cursor = self._get_find_cursor(alias=alias)
-        self._filters = {}
+        if not with_filters:
+            self._filters = {}
         return await cursor.count()
 
     @property
